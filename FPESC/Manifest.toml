@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "9656a1e6fd1da65d4372dc6b05d612df3aba2453"
+project_hash = "96595c8f47bb73b8c6f2493792b7931959287fff"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -45,7 +45,7 @@ uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 version = "1.7.0"
 
 [[deps.FPESC]]
-deps = ["HDF5"]
+deps = ["HDF5", "TOML"]
 path = "."
 uuid = "24668c7a-1173-4f84-a93f-7ec8c6e88eef"
 version = "0.7.0-dev"

@@ -14,12 +14,129 @@ worker-count test is skipped when Julia was started with a single thread.
 """
 
 using Test
+using HDF5
 using FPESC
 
 const AMU = 1.66053906660e-27
 const MU_B = [-1.0, -0.5, 0.0, 0.5, 1.0]
 
 mev(value) = value * 1.0e6 * ELEMENTARY_CHARGE
+
+function write_test_population!(populations, name)
+    population = create_group(populations, name)
+    population["density"] = Float64[1.0e19]
+    population["distribution_index"] = Int64[0]
+    distributions = create_group(population, "distributions")
+    distributions["kind"] = UInt8[1]
+    distributions["parameters_flat"] = Float64[mev(0.01)]
+    distributions["parameter_offsets"] = Int64[0, 1]
+    for prefix in ("energy", "mu", "f")
+        distributions[prefix * "_values"] = Float64[]
+        distributions[prefix * "_offsets"] = Int64[0, 0]
+    end
+    return nothing
+end
+
+function write_test_particles!(reaction)
+    particles = create_group(reaction, "particles")
+    values = (
+        ("r1", 2.013553198 * AMU, 1, 2),
+        ("r2", 3.015500688 * AMU, 1, 3),
+        ("p3", 1.008664923 * AMU, 0, 1),
+        ("p4", 4.001506090 * AMU, 2, 4),
+    )
+    for (role, mass, charge, mass_number) in values
+        particle = create_group(particles, role)
+        particle["mass"] = mass
+        particle["charge_number"] = Int64(charge)
+        particle["mass_number"] = Int64(mass_number)
+    end
+    return nothing
+end
+
+function write_test_total_cross_section!(file)
+    cross_section = create_group(file, "cross_section")
+    cross_section["kind"] = "total-cubic-ppoly"
+    cross_section["energy_knots"] = Float64[0.0, mev(1.0)]
+    cross_section["coefficients_flat"] = Float64[0.0, 0.0, 1.0e-28, 1.0e-28]
+    return nothing
+end
+
+function write_test_differential_cross_section!(file)
+    cross_section = create_group(file, "cross_section")
+    cross_section["kind"] = "differential-tensor-bspline"
+    cross_section["energy_knots"] = Float64[
+        0.0, 0.0, 0.0, 0.0, mev(0.2), mev(0.2), mev(0.2), mev(0.2),
+    ]
+    cross_section["mu_knots"] = Float64[
+        -1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0,
+    ]
+    cross_section["degrees"] = UInt8[3, 3]
+    coefficients = fill(1.0e-28, 4, 4)
+    cross_section["coefficients_flat"] = vec(permutedims(coefficients, (2, 1)))
+    return nothing
+end
+
+function write_test_task(
+    path;
+    schema_version::Int=2,
+    reaction_name::String="dd-n3he",
+    relation::String="same",
+    calculation_kind::String="reaction-rate-profile",
+    selected_product::Int=3,
+    explicit_custom::Bool=false,
+)
+    h5open(path, "w") do file
+        metadata = attributes(file)
+        metadata["schema_version"] = UInt64(schema_version)
+        metadata["unit_system"] = "SI"
+        task = create_group(file, "task")
+        task["calculation_kind"] = calculation_kind
+        create_group(file, "run")["seed"] = UInt64(20261101)
+
+        reaction = create_group(file, "reaction")
+        reaction["name"] = reaction_name
+        reaction["population_relation"] = relation
+        if calculation_kind == "product-emission-spectrum"
+            reaction["selected_product"] = Int64(selected_product)
+        end
+
+        cells = create_group(file, "cells")
+        cells["R"] = Float64[1.0]
+        cells["Z"] = Float64[0.0]
+        cells["psi_norm"] = Float64[0.0]
+        cells["importance_weight"] = Float64[1.0]
+        if calculation_kind == "product-emission-spectrum"
+            cells["B_hat_flat"] = Float64[0.0, 0.0, 1.0]
+        end
+
+        populations = create_group(file, "populations")
+        write_test_population!(populations, "p0")
+        relation == "distinct" && write_test_population!(populations, "p1")
+        sampling = create_group(file, "sampling")
+        for reactant in ("reactant1", "reactant2")
+            group = create_group(sampling, reactant)
+            group["energy_range"] = Float64[0.0, mev(0.2)]
+            group["mu_range"] = Float64[-1.0, 1.0]
+        end
+
+        if calculation_kind == "product-emission-spectrum"
+            spectrum = create_group(file, "spectrum")
+            spectrum["energy_edges"] = Float64[0.0, mev(10.0), mev(20.0)]
+            spectrum["mu_B"] = Float64[0.0]
+        end
+
+        if explicit_custom
+            write_test_particles!(reaction)
+            if calculation_kind == "reaction-rate-profile"
+                write_test_total_cross_section!(file)
+            else
+                write_test_differential_cross_section!(file)
+            end
+        end
+    end
+    return path
+end
 
 function dt_reaction()
     deuteron = Particle(:d, 2.013553198 * AMU, 1, 2)
@@ -166,6 +283,130 @@ const RATE_GOLDEN = 4.402366809013499e-21
 const RATE_WEIGHT_GOLDEN = 8.18184830154786e30
 
 @testset "FPESC" begin
+    @testset "built-in reaction presets and task dispatch" begin
+        dd = load_builtin_reaction("dd-n3he")
+        dt = load_builtin_reaction("dt-n4he")
+        @test dd.reaction.reactant1 == dd.reaction.reactant2
+        @test dd.reaction.product1.charge_number == 0
+        @test dd.reaction.product2.mass_number == 3
+        @test dt.reaction.reactant2.mass_number == 3
+        @test dt.reaction.product2.mass_number == 4
+        @test dd.total_cross_section isa BoschHaleCrossSection
+        @test dd.differential_cross_section isa
+            NormalizedLegendreDifferentialCrossSection
+
+        @test cross_section_barns(dd.total_cross_section, 0.1) ≈
+            0.03701204036658502 rtol=1.0e-14
+        @test cross_section_barns(dt.total_cross_section, 0.1) ≈
+            3.4272451652026223 rtol=1.0e-14
+        @test differential_cross_section_barns_per_sr(
+            dd.differential_cross_section, 1.0, 1.0,
+        ) ≈ 0.020023165108876313 rtol=1.0e-13
+        @test differential_cross_section_barns_per_sr(
+            dt.differential_cross_section, 1.0, 0.0,
+        ) ≈ 0.011264652423865339 rtol=1.0e-13
+        @test differential_cross_section_barns_per_sr(
+            dt.differential_cross_section, 0.001, 0.0,
+        ) ≈ cross_section_barns(dt.total_cross_section, 0.001) /
+            (4.0 * pi) rtol=1.0e-14
+        @test differential_cross_section_barns_per_sr(
+            dd.differential_cross_section, 0.001, 0.8,
+        ) ≈ cross_section_barns(dd.total_cross_section, 0.001) /
+            (4.0 * pi) rtol=1.0e-14
+        @test differential_cross_section_barns_per_sr(
+            dd.differential_cross_section, 0.001, 1.1,
+        ) == 0.0
+        @test differential_cross_section_barns_per_sr(
+            dd.differential_cross_section, 40.1, 0.0,
+        ) == 0.0
+        @test cross_section_barns(dt.total_cross_section, 0.0) == 0.0
+
+        mktempdir() do directory
+            rate_path = write_test_task(
+                joinpath(directory, "dd-rate.h5"),
+            )
+            rate_task = load_task(rate_path)
+            @test rate_task.problem.cross_section isa BoschHaleCrossSection
+            rate_result = calculate_reaction_rate(
+                rate_task.problem,
+                RunConfig(
+                    samples=200, seed=11, n_workers=1,
+                    kinematics=Relativistic(),
+                ),
+            )
+            @test all(isfinite, rate_result.reaction_rate)
+
+            spectrum_path = write_test_task(
+                joinpath(directory, "dt-spectrum.h5");
+                reaction_name="dt-n4he", relation="distinct",
+                calculation_kind="product-emission-spectrum",
+                selected_product=4,
+            )
+            spectrum_task = load_task(spectrum_path)
+            @test spectrum_task.problem.differential_cross_section isa
+                NormalizedLegendreDifferentialCrossSection
+            @test spectrum_task.problem.sampling.which_product == 2
+            spectrum_config = RunConfig(
+                samples=200, seed=12, n_workers=1,
+                kinematics=Relativistic(),
+            )
+            spectrum_result = calculate_total_spectrum(
+                spectrum_task.problem, spectrum_config,
+            )
+            @test all(isfinite, spectrum_result.accumulator)
+            result_path = joinpath(directory, "built-in-result.h5")
+            write_result(
+                result_path, spectrum_task, spectrum_result, spectrum_config,
+            )
+            h5open(result_path, "r") do result_file
+                @test Int(read(attributes(result_file)["schema_version"])) == 2
+            end
+
+            custom_v2_path = write_test_task(
+                joinpath(directory, "custom-v2.h5");
+                reaction_name="custom", relation="distinct",
+                explicit_custom=true,
+            )
+            @test load_task(custom_v2_path).problem.cross_section isa
+                CubicSplineCrossSection
+
+            custom_spectrum_path = write_test_task(
+                joinpath(directory, "custom-spectrum-v2.h5");
+                reaction_name="custom", relation="distinct",
+                calculation_kind="product-emission-spectrum",
+                explicit_custom=true,
+            )
+            @test load_task(custom_spectrum_path).problem.differential_cross_section isa
+                TensorCubicBSpline
+
+            unsupported_schema_path = write_test_task(
+                joinpath(directory, "unsupported-schema.h5");
+                schema_version=99, relation="distinct", explicit_custom=true,
+            )
+            @test_throws ArgumentError load_task(unsupported_schema_path)
+
+            invalid_dt_path = write_test_task(
+                joinpath(directory, "invalid-dt.h5");
+                reaction_name="dt-n4he", relation="same",
+            )
+            @test_throws ArgumentError load_task(invalid_dt_path)
+
+            unknown_path = write_test_task(
+                joinpath(directory, "unknown.h5");
+                reaction_name="unknown",
+            )
+            @test_throws ArgumentError load_task(unknown_path)
+
+            mixed_path = write_test_task(
+                joinpath(directory, "mixed.h5"),
+            )
+            h5open(mixed_path, "r+") do file
+                write_test_particles!(file["reaction"])
+            end
+            @test_throws ArgumentError load_task(mixed_path)
+        end
+    end
+
     @testset "counter RNG is deterministic and unbiased in its dimensions" begin
         @test counter_u64(UInt64(7), UInt64(3), UInt32(1)) ==
             counter_u64(UInt64(7), UInt64(3), UInt32(1))
@@ -274,8 +515,8 @@ const RATE_WEIGHT_GOLDEN = 8.18184830154786e30
             @test cross_section_barns(cross_section, energy) ≈
                 analytic_cubic(energy) rtol=1e-14
         end
-        # Schema v1 continues the first/last polynomial outside the knots
-        # instead of returning zero.
+        # Explicit spline cross sections continue the first/last polynomial
+        # outside the knots instead of returning zero.
         for energy in (-0.5, -0.01, 2.01, 3.0)
             @test cross_section_barns(cross_section, energy) ≈
                 analytic_cubic(energy) rtol=1e-12

@@ -13,9 +13,9 @@ downstream convolution, not here; expressing the emission directions in the
 laboratory basis while the sampled momenta stay field-aligned would mix two
 reference frames and distort the beam-thermal spectrum.
 """
-struct SpectrumProblem{C<:TotalCrossSection}
+struct SpectrumProblem{C<:TotalCrossSection,D<:DifferentialCrossSection}
     sampling::ReactionRateProblem{C}
-    differential_cross_section::TensorCubicBSpline
+    differential_cross_section::D
     emission_mus::Vector{Float64}
     emission_directions::Vector{Vec3}
     energy_min::Float64
@@ -27,10 +27,12 @@ struct SpectrumProblem{C<:TotalCrossSection}
 end
 
 function SpectrumProblem(sampling::ReactionRateProblem{C},
-                         differential_cross_section::TensorCubicBSpline;
+                         differential_cross_section::D;
                          emission_mus::AbstractVector{<:Real},
                          energy_range::Tuple{<:Real,<:Real},
-                         bins::Integer) where {C<:TotalCrossSection}
+                         bins::Integer) where
+                         {C<:TotalCrossSection,
+                          D<:DifferentialCrossSection}
     mus = Float64.(emission_mus)
     isempty(mus) && throw(ArgumentError("emission_mus cannot be empty"))
     all(isfinite, mus) && all(mu -> -1.0 <= mu <= 1.0, mus) ||
@@ -231,11 +233,12 @@ end
     workspace.cell_indices[slot] = cell_index
     workspace.weights[slot] = sample_weight
     workspace.feasible[slot] = shared.feasible ? UInt8(1) : UInt8(0)
-    energy_span = 0
-    energy_basis = (0.0, 0.0, 0.0, 0.0)
+    energy_cache = prepare_differential_cross_section(
+        problem.differential_cross_section, 0.0,
+    )
     if shared.feasible
-        energy_span, energy_basis = cubic_bspline_basis(
-            problem.differential_cross_section.energy_knots,
+        energy_cache = prepare_differential_cross_section(
+            problem.differential_cross_section,
             shared.center_of_mass_energy / MEV,
         )
     end
@@ -277,9 +280,9 @@ end
                 if 0.0 <= position < problem.bins
                     bin_index = floor(Int, position) + 1
                     mu_query = sampling.which_product == 1 ? cosine : -cosine
-                    sigma_barns = differential_cross_section_barns_per_sr(
-                        problem.differential_cross_section, energy_span,
-                        energy_basis, mu_query,
+                    sigma_barns = evaluate_differential_cross_section(
+                        problem.differential_cross_section, energy_cache,
+                        mu_query,
                     )
                     isfinite(sigma_barns) || throw(ErrorException(
                         "total-spectrum sample produced a non-finite cross section",

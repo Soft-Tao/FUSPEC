@@ -8,6 +8,7 @@ include("rng.jl")
 include("distributions.jl")
 include("packed_inputs.jl")
 include("cross_sections.jl")
+include("builtin_reactions.jl")
 include("run_config.jl")
 include("kinematics_core.jl")
 include("reaction_rate.jl")
@@ -23,9 +24,12 @@ export counter_u64, counter_uniform
 export Distribution, Maxwellian, BiMaxwellian, TabulatedDistribution,
        PackedDistribution, pack_distribution, sample_momentum
 export PackedDistributionBatch, build_reaction_rate_cells
-export TotalCrossSection, ConstantCrossSection, CubicSplineCrossSection,
-       TensorCubicBSpline, cross_section_barns,
+export TotalCrossSection, DifferentialCrossSection, ConstantCrossSection,
+       BoschHaleBranch, BoschHaleCrossSection, CubicSplineCrossSection,
+       TensorCubicBSpline, NormalizedLegendreDifferentialCrossSection,
+       cross_section_barns,
        differential_cross_section_barns_per_sr
+export ResolvedReaction, load_builtin_reaction, is_builtin_reaction
 export RunConfig
 export ReactionRateCell, ReactionRateProblem,
        ReactionRateResult, ReactionRateWorkspace

@@ -13,6 +13,12 @@ ReactionRate kernel, and a directional TotalSpectrum kernel. Both
 kernels support bounded-workspace deterministic parallel execution with
 bit-for-bit stable reduction across worker counts.
 
+Task schema v2 supports built-in `dd-n3he` and `dt-n4he` reactions. Their
+particles, Bosch-Hale total cross sections, and normalized DROSG Legendre
+angular coefficients are stored in `data/*.toml` and resolved by independent
+per-reaction loaders before problem construction. Explicit custom reactions
+remain available and support either p3 or p4 spectra.
+
 HDF5.jl is a direct dependency used by the validated prepared-task loader and
 final-result writer. Result files contain only the normalized emission spectrum
 or final reaction-rate profile; raw accumulators and continuation state are not

@@ -189,15 +189,40 @@ function load_particle(file, role::AbstractString)
 end
 
 function load_reaction(file)
-    # Schema v1 stores no link_to field: the task's differential cross section
-    # is always referenced to reactant 1 (the projectile), so both products
-    # are linked to it. The spectrum kernel mirrors the table with mu -> -mu
-    # when the selected product is p4 instead of p3.
+    # The task's differential cross section is always referenced to reactant 1
+    # (the projectile), so both products are linked to it. The spectrum kernel
+    # mirrors the table with mu -> -mu when the selected product is p4.
     return Reaction(
         :prepared_fusion, load_particle(file, "r1"), load_particle(file, "r2"),
         load_particle(file, "p3"), load_particle(file, "p4");
         link_to_product1=1, link_to_product2=1,
     )
+end
+
+function same_particle_definition(left::Particle, right::Particle)
+    return left.mass == right.mass &&
+        left.charge_number == right.charge_number &&
+        left.mass_number == right.mass_number
+end
+
+function load_task_reaction(file)
+    name = read_string(file, "reaction/name")
+    if name == "custom"
+        haskey(file, "reaction/particles") || throw(ArgumentError(
+            "custom reaction task is missing /reaction/particles",
+        ))
+        return nothing
+    end
+    is_builtin_reaction(name) || throw(ArgumentError(
+        "unsupported /reaction/name $name",
+    ))
+    haskey(file, "reaction/particles") && throw(ArgumentError(
+        "built-in reaction task must not contain /reaction/particles",
+    ))
+    haskey(file, "cross_section") && throw(ArgumentError(
+        "built-in reaction task must not contain /cross_section",
+    ))
+    return load_builtin_reaction(name)
 end
 
 function load_cells(file)
@@ -285,8 +310,8 @@ function load_task(path::AbstractString)
     isfile(path) || throw(ArgumentError("input task does not exist: $path"))
     return h5open(path, "r") do file
         version = Int(read_root_attribute(file, "schema_version"))
-        version == 1 || throw(ArgumentError(
-            "unsupported FPESC task schema_version $version; expected 1",
+        version == 2 || throw(ArgumentError(
+            "unsupported FPESC task schema_version $version; expected 2",
         ))
         String(read_root_attribute(file, "unit_system")) == "SI" ||
             throw(ArgumentError("FPESC task unit_system must be SI"))
@@ -297,10 +322,25 @@ function load_task(path::AbstractString)
         fingerprint = read_optional_string(file, "task/physics_fingerprint")
         R, Z, psi_norm, importance = load_cells(file)
         n_cells = length(R)
+        resolved = load_task_reaction(file)
         relation = read_string(file, "reaction/population_relation")
         relation in ("same", "distinct") || throw(ArgumentError(
             "/reaction/population_relation must be same or distinct",
         ))
+        reaction = resolved === nothing ?
+            load_reaction(file) : resolved.reaction
+        if resolved !== nothing && resolved.name == "dt-n4he" &&
+            relation != "distinct"
+            throw(ArgumentError(
+                "dt-n4he requires /reaction/population_relation=distinct",
+            ))
+        end
+        if relation == "same" &&
+            !same_particle_definition(reaction.reactant1, reaction.reactant2)
+            throw(ArgumentError(
+                "same-population task requires identical r1 and r2 particles",
+            ))
+        end
         density1, batch1, indices1 = load_population(
             file, "populations/p0", n_cells,
         )
@@ -319,15 +359,16 @@ function load_task(path::AbstractString)
             pair_factor .* density1, density2, importance,
             batch1, batch2, indices1, indices2,
         )
-        reaction = load_reaction(file)
         energy1, energy2, mu1, mu2 = load_ranges(file)
 
         if kind == :reaction_rate_profile
             haskey(file, "reaction/selected_product") && throw(ArgumentError(
                 "reaction-rate task must not select a product",
             ))
+            total_cross_section = resolved === nothing ?
+                load_total_cross_section(file) : resolved.total_cross_section
             problem = ReactionRateProblem(
-                reaction, cells, load_total_cross_section(file);
+                reaction, cells, total_cross_section;
                 energy_range1=energy1, energy_range2=energy2,
                 mu_range1=mu1, mu_range2=mu2, which_product=1,
             )
@@ -359,8 +400,11 @@ function load_task(path::AbstractString)
             mu_range1=mu1, mu_range2=mu2,
             which_product=selected == 3 ? 1 : 2,
         )
+        differential_cross_section = resolved === nothing ?
+            load_differential_cross_section(file) :
+            resolved.differential_cross_section
         problem = SpectrumProblem(
-            sampling_problem, load_differential_cross_section(file);
+            sampling_problem, differential_cross_section;
             emission_mus=mu_B,
             energy_range=(first(energy_edges), last(energy_edges)),
             bins=length(energy_edges) - 1,
@@ -396,7 +440,7 @@ end
 
 function initialize_result_file(file, task::PreparedTask, config::RunConfig)
     metadata = attributes(file)
-    metadata["schema_version"] = UInt64(1)
+    metadata["schema_version"] = UInt64(2)
     write_run_metadata(create_group(file, "run"), task, config)
     write_cell_metadata(file, task)
     return nothing

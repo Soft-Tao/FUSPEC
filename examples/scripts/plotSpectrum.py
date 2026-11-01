@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plot the two FPESC line-of-sight differential spectra."""
+"""Compare both current task spectra with their reference spectra."""
 
 from pathlib import Path
 
@@ -9,20 +9,41 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 OUTPUT_DIRECTORY = HERE.parent / "outputs"
-SPECTRA = (OUTPUT_DIRECTORY / "Spectrum1.txt", OUTPUT_DIRECTORY / "Spectrum2.txt")
 OUTPUT = OUTPUT_DIRECTORY / "Spectrums.png"
-COLORS = ("#e31a1c", "#9677b8")
-LINESTYLES = ("-", "--")
+SERIES = (
+    (
+        OUTPUT_DIRECTORY / "Spectrum1.txt",
+        "TaskPackage1 custom",
+        "#e31a1c",
+        "-",
+    ),
+    (
+        OUTPUT_DIRECTORY / "Spectrum1_ref.txt",
+        "Spectrum1_ref",
+        "#9677b8",
+        "--",
+    ),
+    (
+        OUTPUT_DIRECTORY / "Spectrum2.txt",
+        "TaskPackage2 custom",
+        "#fdbf6f",
+        ":",
+    ),
+    (
+        OUTPUT_DIRECTORY / "Spectrum2_ref.txt",
+        "Spectrum2_ref",
+        "#33a02c",
+        "-.",
+    ),
+)
 
 
 def main():
     plt.style.use(HERE / "scientific.mplstyle")
-    figure, axes = plt.subplots()
+    figure, axes = plt.subplots(figsize=(9, 6), constrained_layout=True)
     limits = []
 
-    for index, (path, color, linestyle) in enumerate(
-        zip(SPECTRA, COLORS, LINESTYLES), start=1
-    ):
+    for path, label, color, linestyle in SERIES:
         data = np.loadtxt(path)
         energy, rate = data[:, 0], data[:, 2]
         nonzero = np.flatnonzero(rate > 0.0)
@@ -32,7 +53,8 @@ def main():
             rate,
             color=color,
             linestyle=linestyle,
-            label=f"Spectrum {index}",
+            linewidth=3,
+            label=label,
         )
 
     left = min(bound[0] for bound in limits)
@@ -44,7 +66,6 @@ def main():
     axes.set_xlabel("Neutron energy (MeV)")
     axes.set_ylabel(r"Differential rate (s$^{-1}$ MeV$^{-1}$)")
     axes.legend()
-    figure.tight_layout()
     figure.savefig(OUTPUT, bbox_inches="tight", dpi=300)
     plt.close(figure)
     print(OUTPUT)

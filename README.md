@@ -45,6 +45,13 @@ The task file contains the selected reaction, populations, cells, sampling
 ranges, cross section, seed, and spectrum grid. It does not contain the Monte
 Carlo sample count or Julia thread count.
 
+Schema v2 selects the built-in `dd-n3he` or `dt-n4he` reaction with
+`/reaction/name`. These tasks omit explicit particle and cross-section
+definitions; Julia resolves them from the human-readable presets under
+`FPESC/data/`. A task with `/reaction/name = "custom"` retains the explicit
+particle and cross-section layout. The spectrum product is still selected by
+`/reaction/selected_product` for emission-spectrum tasks.
+
 The default cross-section model is the ENDF MF3 evaluation converted to the
 centre-of-mass kinetic energy. Pass `--cross-section-model bosch-hale` to use
 the Bosch-Hale total cross section instead; that is the parameterization
