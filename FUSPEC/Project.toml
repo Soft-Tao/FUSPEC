@@ -1,7 +1,7 @@
 name = "FUSPEC"
 uuid = "24668c7a-1173-4f84-a93f-7ec8c6e88eef"
 authors = ["Xutao Xu <soso.ruanruan@gmail.com>"]
-version = "1.0.0"
+version = "1.0.1"
 
 [deps]
 HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"

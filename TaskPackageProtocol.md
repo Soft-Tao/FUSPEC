@@ -1,14 +1,15 @@
 # FUSPEC `input.h5` Task Package Protocol (Contract Draft)
 
-> Status: v0.3. Schema v2 and the built-in DD/DT runtime path are implemented.
+> Status: Protocol v0.4, Julia kernel v1.0.1, schema v3. The built-in DD/DT
+> runtime path is implemented.
 
 ## 1. Established Semantics
 
-1. A single `input.h5` represents exactly one reaction and one calculation kind.
-2. The calculation kind is only `reaction-rate-profile` or `product-emission-spectrum`; there is no `both`.
+1. A single `input.h5` represents exactly one reaction and one Calculation Mode.
+2. The Calculation Mode is only `reaction-rate` or `product-distribution`; there is no `both`.
 3. `samples` is the total sample count for one Julia CLI run, not a per-cell or per-thread count; it is not written into `input.h5`.
-4. Schema v2 is fixed to relativistic kinematics; the classical branch is not retained, and no configurable kinematics field is stored in the file.
-5. The physical result of a reaction-rate profile is
+4. Schema v3 is fixed to relativistic kinematics; the classical branch is not retained, and no configurable kinematics field is stored in the file.
+5. The physical result of the reaction-rate mode is
 
    ```text
    R(R,Z) = pair_factor * n1(R,Z) * n2(R,Z) * <sigma*v>(R,Z)
@@ -16,12 +17,12 @@
 
    in units of `m^-3 s^-1`. The result file does not store an additional `<sigma*v>` diagnostic profile; if it is needed later, the user computes it from the distributions, densities, and cross section in the task.
 6. When a population reacts with itself, the pair factor is 0.5; when two distinct populations react, the pair factor is 1.0. The pair factor is not written into the task; Julia derives it uniquely from `population_relation`.
-7. The pair factor applies to both the reaction-rate profile and the product emission spectrum.
+7. The pair factor applies to both Calculation Modes.
 8. `importance_weight` remains in the schema, but every current task package stores `1.0` for every cell (uniform). It is never multiplied into the physical results; if it were non-uniform, Julia would use it only to allocate per-cell sample counts.
-9. Reaction-rate-profile tasks do not select a product. Product-emission-spectrum tasks select p3 or p4 for both custom and built-in reactions, so the user always chooses the product whose spectrum is calculated.
+9. Reaction-rate tasks do not select a product. Product-distribution tasks select p3 or p4 for both custom and built-in reactions, so the user always chooses the product distribution to calculate.
 10. For custom reactions, Python preprocesses cross sections into the final interpolation knots/coefficients. Julia only rebuilds and evaluates the interpolator; it does not read ENDF or re-fit. Built-in reactions load their packaged parameterization through reaction-specific loaders.
 11. The worker count is not part of the task's physics contract; it is determined by `julia -t N`.
-12. Schema v2 considers only two-body fusion reactions and does not support scattering reactions, so no `link_to` parameter is stored. The differential cross section is always tabulated for the selected product relative to reactant 1 (the projectile) in the centre-of-mass frame, so Julia fixes `link_to_product1 = link_to_product2 = 1`; for a selected product 2 (`p4`) the kernel looks the table up with `mu -> -mu`, because the two products are back to back in the centre-of-mass frame.
+12. Schema v3 considers only two-body fusion reactions and does not support scattering reactions, so no `link_to` parameter is stored. The differential cross section is always tabulated for the selected product relative to reactant 1 (the projectile) in the centre-of-mass frame, so Julia fixes `link_to_product1 = link_to_product2 = 1`; for a selected product 2 (`p4`) the kernel looks the table up with `mu -> -mu`, because the two products are back to back in the centre-of-mass frame.
 
 ## 2. Data Types and Unit Conventions
 
@@ -35,19 +36,19 @@
 ## 3. Root and Task Metadata
 
 ```text
-/@schema_version                 = 2
+/@schema_version                 = 3
 /@unit_system                    = "SI"
 
-/task/calculation_kind           # one of the two valid enum values
+/task/calculation_mode           # "product-distribution" or "reaction-rate"
 /task/physics_fingerprint        # excludes CLI samples and output paths
 /task/label                      # optional; for log display only
 ```
 
-Schema v2 denotes a relativistic fusion task; Julia does not read or accept a
+Schema v3 denotes a relativistic fusion task; Julia does not read or accept a
 kinematics-mode override. `task/label` does not participate in the physics
 fingerprint.
 
-Schema validation is strict: `/@schema_version` must equal 2. Any other version
+Schema validation is strict: `/@schema_version` must equal 3. Any other version
 is rejected. Every task requires `/reaction/name`, whose allowed values are the
 built-in names `dd-n3he` and `dt-n4he` or the explicit custom mode `custom`.
 
@@ -57,7 +58,7 @@ built-in names `dd-n3he` and `dt-n4he` or the explicit custom mode `custom`.
 /run/seed
 ```
 
-`samples`, the worker count, thread IDs, and thread shards are not written into `input.h5`. `samples` is specified by the Julia CLI; parallel thread capacity is set by `julia -t N`. Schema v2 implicitly fixes the `fuspec_counter_v1` RNG, and the collective velocity of both reactants is implicitly `[0,0,0]`, with no dataset stored. The RNG must be decoupled from the runtime choice of sample count and worker count so that deterministic acceptance with 1/2/4 threads is supported.
+`samples`, the worker count, thread IDs, and thread shards are not written into `input.h5`. `samples` is specified by the Julia CLI; parallel thread capacity is set by `julia -t N`. Schema v3 implicitly fixes the `fuspec_counter_v1` RNG, and the collective velocity of both reactants is implicitly `[0,0,0]`, with no dataset stored. The RNG must be decoupled from the runtime choice of sample count and worker count so that deterministic acceptance with 1/2/4 threads is supported.
 
 ## 5. Reaction and Particles
 
@@ -92,8 +93,8 @@ following paths must be absent:
 ```
 
 The reaction name identifies the nuclear reaction branch and its built-in
-particles and cross sections. It does not choose which product spectrum a
-spectrum task calculates. Product-emission-spectrum tasks must still write
+particles and cross sections. It does not choose which product distribution the
+product-distribution mode calculates. Product-distribution tasks must still write
 `/reaction/selected_product` as 3 or 4, as for every other two-body reaction;
 reaction-rate tasks must omit it. For example, both the neutron (p3) and ³He
 (p4) spectra can be requested from `dd-n3he`, and both the neutron (p3) and
@@ -121,7 +122,7 @@ A custom task must write:
 ```text
 /reaction/name                       = "custom"
 /reaction/population_relation        # "same" or "distinct"
-/reaction/selected_product           # only for spectrum tasks; 3 or 4
+/reaction/selected_product           # only for product-distribution tasks; 3 or 4
 
 /reaction/particles/r1/label         # optional, e.g. "D"
 /reaction/particles/r1/mass
@@ -132,7 +133,7 @@ A custom task must write:
 /reaction/particles/p4/...
 ```
 
-Reaction-rate-profile custom tasks must not contain
+Reaction-rate custom tasks must not contain
 `/reaction/selected_product`. The p3/p4 information must still be present;
 Julia uses the four masses to compute the Q value and validate the reaction
 definition.
@@ -146,7 +147,7 @@ The built-in and custom layouts cannot be mixed:
 - A built-in name with any `/reaction/particles` or `/cross_section` data is
   invalid.
 - `/reaction/name = "custom"` without the required explicit particle data and
-  calculation-kind-specific cross section is invalid.
+  mode-specific cross section is invalid.
 - A task with a missing or unknown `/reaction/name` is invalid.
 
 `population_relation` is the single authoritative input that decides same/distinct; it is not a provenance label. Python does not auto-infer it from array fingerprints, particle species, or labels. Julia maps populations and derives the pair factor exactly as fixed by the schema:
@@ -169,10 +170,10 @@ For example:
 /cells/Z                         # [n_cells], m
 /cells/psi_norm                  # [n_cells], dimensionless
 /cells/importance_weight         # [n_cells], > 0; currently 1.0 for every cell
-/cells/B_hat_flat                # required only for spectrum tasks; fixed length 3*n_cells
+/cells/B_hat_flat                # required only for product-distribution tasks; fixed length 3*n_cells
 ```
 
-`R/Z/psi_norm` are used for result positioning. `B_hat` never participates in the reaction-rate-profile kernel. For product-emission-spectrum tasks Julia validates it and copies it into the result bundle for the downstream line-of-sight convolution, which converts every LOS ray direction into a pitch against the local `B_hat`; the spectrum kernel itself never reads it, because it works in the field-aligned frame described in section 7.
+`R/Z/psi_norm` are used for result positioning. `B_hat` never participates in the reaction-rate kernel. For product-distribution tasks Julia validates it and copies it into the result bundle for the downstream line-of-sight convolution, which converts every LOS ray direction into a pitch against the local `B_hat`; the distribution kernel itself never reads it, because it works in the field-aligned frame described in section 7.
 
 ### 6.2 Deduplicated Populations
 
@@ -252,7 +253,7 @@ Each population may contain multiple deduplicated distributions:
 The schema stores the mu range directly rather than the polar-angle range of
 the Python API, avoiding the `cos(theta)` endpoint-reversal ambiguity. The
 azimuthal angle remains uniformly sampled in `[0,2*pi)` and is not a task
-parameter in schema v2.
+parameter in schema v3.
 
 ## 9. Cross-Section Contract
 
@@ -270,7 +271,7 @@ This section defines the explicit cross-section layout used by tasks with
 centre-of-mass energy convention, SI units, interpolation types, and
 out-of-range semantics as the explicit tables.
 
-### 9.1 Reaction-Rate Profile: One-Dimensional Piecewise Cubic Polynomial
+### 9.1 Reaction-Rate Mode: One-Dimensional Piecewise Cubic Polynomial
 
 ```text
 /cross_section/kind                   = "total-cubic-ppoly"
@@ -287,7 +288,7 @@ sigma(E) = c[0,i]*(E-x[i])^3 + c[1,i]*(E-x[i])^2
 
 Python must convert the MeV/barn coefficients into J/m^2 coefficients before writing. The knot count is producer-dependent: the bundled task-5 packages use 700 knots and a `[4,699]` coefficient array, while a spline on the raw 161-point ENDF grid gives 161 knots and `[4,160]`. Beyond the knot range, the piecewise-cubic extrapolation of the pure Python/SciPy version is continued; it does not return 0 or refuse to compute.
 
-### 9.2 Product Emission Spectrum: Two-Dimensional Tensor-Product B-Spline
+### 9.2 Product-Distribution Mode: Two-Dimensional Tensor-Product B-Spline
 
 ```text
 /cross_section/kind                   = "differential-tensor-bspline"
@@ -321,9 +322,9 @@ every name to a common `ResolvedReaction` containing:
 
 - the canonical reactant and product particles, including masses used by the
   relativistic kinematics;
-- the total cross section required by reaction-rate profiles;
+- the total cross section required by the reaction-rate mode;
 - the differential cross section and product convention required by
-  product-emission-spectrum tasks.
+  product-distribution tasks.
 
 The built-in provider does not resample the source models into the custom
 cross-section types. It evaluates the Bosch-Hale total cross section as
@@ -377,7 +378,7 @@ corresponding data sections:
 
 A built-in task is runnable by the current FUSPEC loader.
 
-## 10. Required Fields for Product-Emission-Spectrum Tasks
+## 10. Required Fields for Product-Distribution Tasks
 
 ```text
 /spectrum/energy_edges           # [n_bins+1], J, strictly increasing
@@ -386,11 +387,11 @@ A built-in task is runnable by the current FUSPEC loader.
 
 No presets such as `medium` are stored; only the exact grid already materialized by Python is stored. A pure-Maxwellian task may use the single point `mu_B=[1]`; LOS treats it as isotropic.
 
-The spectrum grid is required for both custom and built-in spectrum tasks.
-Both modes record `/reaction/selected_product` as 3 or 4, independently of the
-reaction name.
+The product-distribution grid is required for both custom and built-in
+product-distribution tasks. These tasks record `/reaction/selected_product` as
+3 or 4, independently of the reaction name.
 
-Reaction-rate-profile tasks must not contain `/spectrum`.
+Reaction-rate tasks must not contain `/spectrum`.
 
 ## 11. Provenance
 
@@ -405,7 +406,7 @@ The provenance group is entirely optional and does not participate in Julia phys
 
 ## 12. Sanity Checks Julia Must Perform
 
-1. Version and unit match strictly. Schema version must be 2, and
+1. Version and unit match strictly. Schema version must be 3, and
    `/reaction/name` must be one of `dd-n3he`, `dt-n4he`, or `custom`.
    The task runs the relativistic fusion algorithm and uses the fixed RNG.
 2. The Julia CLI `samples` lies in `[1, 2^64-1]`.
@@ -425,14 +426,14 @@ The provenance group is entirely optional and does not participate in Julia phys
    derived from the knots/degrees. Built-in providers must obey the same
    interpolation and out-of-range contracts.
 10. Built-in tasks must omit `/reaction/particles` and `/cross_section`.
-    Custom tasks must include all custom fields required by the calculation
-    kind.
-11. Reaction-rate-profile tasks must not have a selected product, a spectrum
+    Custom tasks must include all custom fields required by the Calculation
+    Mode.
+11. Reaction-rate tasks must not have a selected product, a spectrum
     grid, or a differential cross section. A custom reaction-rate task must
     have a total cross section.
-12. Product-emission-spectrum tasks must have `B_hat`, a spectrum grid, and a
-    selected product. Both modes select p3 or p4. A custom task must provide a
-    differential cross section; a built-in task resolves it from the preset.
+12. Product-distribution tasks must have `B_hat`, a spectrum grid, and a
+    selected product. These tasks select p3 or p4. A custom task must provide
+    a differential cross section; a built-in task resolves it from the preset.
 13. A built-in name must never be mixed with explicit particle or
     cross-section data. An unknown or missing reaction name is rejected.
 14. Each row of `B_hat` is finite and has unit norm within the prescribed
@@ -470,18 +471,18 @@ The provenance group is entirely optional and does not participate in Julia phys
 
 ## 15. Interface Acceptance Matrix
 
-The following cases define the v0.3 runtime contract:
+The following cases define the v0.4 runtime contract:
 
-| Reaction name | Calculation | Required outcome |
+| Reaction name | Calculation Mode | Required outcome |
 |---|---|---|
-| `dd-n3he`, `same` | rate | Valid without particles, selected product, or cross section |
-| `dd-n3he`, `same` | spectrum | Valid with p3 or p4 selected and no particles or cross section |
-| `dd-n3he`, `distinct` | rate or spectrum | Valid; D roles map to p0/p1 |
-| `dt-n4he`, `distinct` | rate | Valid without particles, selected product, or cross section |
-| `dt-n4he`, `distinct` | spectrum | Valid with p3 or p4 selected and no particles or cross section |
-| `custom` | rate or spectrum | Valid only with the existing explicit fields |
+| `dd-n3he`, `same` | `reaction-rate` | Valid without particles, selected product, or cross section |
+| `dd-n3he`, `same` | `product-distribution` | Valid with p3 or p4 selected and no particles or cross section |
+| `dd-n3he`, `distinct` | either | Valid; D roles map to p0/p1 |
+| `dt-n4he`, `distinct` | `reaction-rate` | Valid without particles, selected product, or cross section |
+| `dt-n4he`, `distinct` | `product-distribution` | Valid with p3 or p4 selected and no particles or cross section |
+| `custom` | either | Valid only with the existing explicit fields |
 | `dt-n4he`, `same` | either | Invalid |
 | Unknown or missing name | either | Invalid |
-| Built-in spectrum without a selected product | spectrum | Invalid |
+| Built-in product distribution without a selected product | `product-distribution` | Invalid |
 | Built-in plus particles or cross section | either | Invalid |
-| Custom missing calculation-kind-specific fields | either | Invalid |
+| Custom missing mode-specific fields | either | Invalid |

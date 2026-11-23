@@ -48,7 +48,7 @@ version = "1.7.0"
 deps = ["HDF5", "TOML"]
 path = "."
 uuid = "24668c7a-1173-4f84-a93f-7ec8c6e88eef"
-version = "1.0.0"
+version = "1.0.1"
 
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"

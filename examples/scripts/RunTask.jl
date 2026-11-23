@@ -83,17 +83,18 @@ function run(options::CLIOptions)
         n_workers=workers,
         kinematics=Relativistic(),
     )
-    println("Calculation kind: ", replace(String(task.calculation_kind), "_" => "-"))
+    println("Calculation Mode: ",
+            replace(String(task.calculation_mode), "_" => "-"))
     println("Samples: ", options.samples)
     println("Julia threads/workers: ", workers)
     result = nothing
     elapsed = @elapsed begin
-        result = if task.calculation_kind == :product_emission_spectrum
+        result = if task.calculation_mode == :product_distribution
             calculate_total_spectrum(task.problem, config)
-        elseif task.calculation_kind == :reaction_rate_profile
+        elseif task.calculation_mode == :reaction_rate
             calculate_reaction_rate(task.problem, config)
         else
-            error("unsupported loaded calculation kind $(task.calculation_kind)")
+            error("unsupported loaded Calculation Mode $(task.calculation_mode)")
         end
     end
     println("Kernel elapsed seconds: ", round(elapsed; digits=3))

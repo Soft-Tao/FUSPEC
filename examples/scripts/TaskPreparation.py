@@ -214,10 +214,10 @@ def _write_task(
     r, z, psi, b_hat = cells
     temporary = path.with_suffix(path.suffix + ".tmp")
     with h5py.File(temporary, "w") as file:
-        file.attrs["schema_version"] = np.uint64(2)
+        file.attrs["schema_version"] = np.uint64(3)
         file.attrs["unit_system"] = "SI"
         task = file.create_group("task")
-        _string(task, "calculation_kind", "product-emission-spectrum")
+        _string(task, "calculation_mode", "product-distribution")
         _string(task, "label", label)
         file.create_group("run")["seed"] = np.uint64(seed)
         reaction = file.create_group("reaction")

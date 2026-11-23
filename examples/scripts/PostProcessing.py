@@ -105,12 +105,12 @@ def read_los(path):
 
 
 def load_map(path):
-    """Open a FUSPEC product-emission-spectrum HDF5 file."""
+    """Open a FUSPEC product-distribution HDF5 result file."""
     file = h5py.File(path, "r")
     try:
-        kind = file["run/calculation_kind"].asstr()[()]
-        if kind != "product-emission-spectrum":
-            raise ValueError(f"Expected product-emission-spectrum, got {kind}")
+        mode = file["run/calculation_mode"].asstr()[()]
+        if mode != "product-distribution":
+            raise ValueError(f"Expected product-distribution, got {mode}")
 
         shape = tuple(int(value) for value in file["result/normalized_shape"][...])
         if len(shape) != 3:

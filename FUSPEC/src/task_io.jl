@@ -2,7 +2,7 @@ using HDF5
 
 """A validated prepared HDF5 task and the metadata needed in its result."""
 struct PreparedTask{P}
-    calculation_kind::Symbol
+    calculation_mode::Symbol
     problem::P
     R::Vector{Float64}
     Z::Vector{Float64}
@@ -299,10 +299,10 @@ function load_differential_cross_section(file)
     )
 end
 
-function normalized_calculation_kind(value::AbstractString)
-    value == "reaction-rate-profile" && return :reaction_rate_profile
-    value == "product-emission-spectrum" && return :product_emission_spectrum
-    throw(ArgumentError("unsupported task calculation_kind $value"))
+function normalized_calculation_mode(value::AbstractString)
+    value == "reaction-rate" && return :reaction_rate
+    value == "product-distribution" && return :product_distribution
+    throw(ArgumentError("unsupported task calculation mode: $value"))
 end
 
 """Load and validate an FUSPEC prepared task from an HDF5 input bundle."""
@@ -310,13 +310,13 @@ function load_task(path::AbstractString)
     isfile(path) || throw(ArgumentError("input task does not exist: $path"))
     return h5open(path, "r") do file
         version = Int(read_root_attribute(file, "schema_version"))
-        version == 2 || throw(ArgumentError(
-            "unsupported FUSPEC task schema_version $version; expected 2",
+        version == 3 || throw(ArgumentError(
+            "unsupported FUSPEC task schema_version $version; expected 3",
         ))
         String(read_root_attribute(file, "unit_system")) == "SI" ||
             throw(ArgumentError("FUSPEC task unit_system must be SI"))
-        kind = normalized_calculation_kind(
-            read_string(file, "task/calculation_kind"),
+        mode = normalized_calculation_mode(
+            read_string(file, "task/calculation_mode"),
         )
         seed = UInt64(read_required(file, "run/seed"))
         fingerprint = read_optional_string(file, "task/physics_fingerprint")
@@ -361,7 +361,7 @@ function load_task(path::AbstractString)
         )
         energy1, energy2, mu1, mu2 = load_ranges(file)
 
-        if kind == :reaction_rate_profile
+        if mode == :reaction_rate
             haskey(file, "reaction/selected_product") && throw(ArgumentError(
                 "reaction-rate task must not select a product",
             ))
@@ -373,7 +373,7 @@ function load_task(path::AbstractString)
                 mu_range1=mu1, mu_range2=mu2, which_product=1,
             )
             return PreparedTask(
-                kind, problem, R, Z, psi_norm, importance, nothing, nothing,
+                mode, problem, R, Z, psi_norm, importance, nothing, nothing,
                 nothing, seed, fingerprint,
             )
         end
@@ -410,14 +410,15 @@ function load_task(path::AbstractString)
             bins=length(energy_edges) - 1,
         )
         return PreparedTask(
-            kind, problem, R, Z, psi_norm, importance, B_hat, energy_edges,
+            mode, problem, R, Z, psi_norm, importance, B_hat, energy_edges,
             mu_B, seed, fingerprint,
         )
     end
 end
 
 function write_run_metadata(group, task::PreparedTask, config::RunConfig)
-    group["calculation_kind"] = replace(String(task.calculation_kind), "_" => "-")
+    group["calculation_mode"] =
+        replace(String(task.calculation_mode), "_" => "-")
     group["samples_requested"] = config.samples
     group["workers"] = Int64(config.n_workers)
     group["seed"] = config.seed
@@ -440,7 +441,7 @@ end
 
 function initialize_result_file(file, task::PreparedTask, config::RunConfig)
     metadata = attributes(file)
-    metadata["schema_version"] = UInt64(2)
+    metadata["schema_version"] = UInt64(3)
     write_run_metadata(create_group(file, "run"), task, config)
     write_cell_metadata(file, task)
     return nothing

@@ -79,10 +79,10 @@ end
 
 function write_test_task(
     path;
-    schema_version::Int=2,
+    schema_version::Int=3,
     reaction_name::String="dd-n3he",
     relation::String="same",
-    calculation_kind::String="reaction-rate-profile",
+    calculation_mode::String="reaction-rate",
     selected_product::Int=3,
     explicit_custom::Bool=false,
 )
@@ -91,13 +91,13 @@ function write_test_task(
         metadata["schema_version"] = UInt64(schema_version)
         metadata["unit_system"] = "SI"
         task = create_group(file, "task")
-        task["calculation_kind"] = calculation_kind
+        task["calculation_mode"] = calculation_mode
         create_group(file, "run")["seed"] = UInt64(20261101)
 
         reaction = create_group(file, "reaction")
         reaction["name"] = reaction_name
         reaction["population_relation"] = relation
-        if calculation_kind == "product-emission-spectrum"
+        if calculation_mode == "product-distribution"
             reaction["selected_product"] = Int64(selected_product)
         end
 
@@ -106,7 +106,7 @@ function write_test_task(
         cells["Z"] = Float64[0.0]
         cells["psi_norm"] = Float64[0.0]
         cells["importance_weight"] = Float64[1.0]
-        if calculation_kind == "product-emission-spectrum"
+        if calculation_mode == "product-distribution"
             cells["B_hat_flat"] = Float64[0.0, 0.0, 1.0]
         end
 
@@ -120,7 +120,7 @@ function write_test_task(
             group["mu_range"] = Float64[-1.0, 1.0]
         end
 
-        if calculation_kind == "product-emission-spectrum"
+        if calculation_mode == "product-distribution"
             spectrum = create_group(file, "spectrum")
             spectrum["energy_edges"] = Float64[0.0, mev(10.0), mev(20.0)]
             spectrum["mu_B"] = Float64[0.0]
@@ -128,7 +128,7 @@ function write_test_task(
 
         if explicit_custom
             write_test_particles!(reaction)
-            if calculation_kind == "reaction-rate-profile"
+            if calculation_mode == "reaction-rate"
                 write_test_total_cross_section!(file)
             else
                 write_test_differential_cross_section!(file)
@@ -283,6 +283,8 @@ const RATE_GOLDEN = 4.402366809013499e-21
 const RATE_WEIGHT_GOLDEN = 8.18184830154786e30
 
 @testset "FUSPEC" begin
+    @test kernel_version() == v"1.0.1"
+
     @testset "built-in reaction presets and task dispatch" begin
         dd = load_builtin_reaction("dd-n3he")
         dt = load_builtin_reaction("dt-n4he")
@@ -326,6 +328,7 @@ const RATE_WEIGHT_GOLDEN = 8.18184830154786e30
                 joinpath(directory, "dd-rate.h5"),
             )
             rate_task = load_task(rate_path)
+            @test rate_task.calculation_mode == :reaction_rate
             @test rate_task.problem.cross_section isa BoschHaleCrossSection
             rate_result = calculate_reaction_rate(
                 rate_task.problem,
@@ -339,10 +342,11 @@ const RATE_WEIGHT_GOLDEN = 8.18184830154786e30
             spectrum_path = write_test_task(
                 joinpath(directory, "dt-spectrum.h5");
                 reaction_name="dt-n4he", relation="distinct",
-                calculation_kind="product-emission-spectrum",
+                calculation_mode="product-distribution",
                 selected_product=4,
             )
             spectrum_task = load_task(spectrum_path)
+            @test spectrum_task.calculation_mode == :product_distribution
             @test spectrum_task.problem.differential_cross_section isa
                 NormalizedLegendreDifferentialCrossSection
             @test spectrum_task.problem.sampling.which_product == 2
@@ -359,21 +363,23 @@ const RATE_WEIGHT_GOLDEN = 8.18184830154786e30
                 result_path, spectrum_task, spectrum_result, spectrum_config,
             )
             h5open(result_path, "r") do result_file
-                @test Int(read(attributes(result_file)["schema_version"])) == 2
+                @test Int(read(attributes(result_file)["schema_version"])) == 3
+                @test read(result_file["run/calculation_mode"]) ==
+                    "product-distribution"
             end
 
-            custom_v2_path = write_test_task(
-                joinpath(directory, "custom-v2.h5");
+            custom_path = write_test_task(
+                joinpath(directory, "custom.h5");
                 reaction_name="custom", relation="distinct",
                 explicit_custom=true,
             )
-            @test load_task(custom_v2_path).problem.cross_section isa
+            @test load_task(custom_path).problem.cross_section isa
                 CubicSplineCrossSection
 
             custom_spectrum_path = write_test_task(
-                joinpath(directory, "custom-spectrum-v2.h5");
+                joinpath(directory, "custom-distribution.h5");
                 reaction_name="custom", relation="distinct",
-                calculation_kind="product-emission-spectrum",
+                calculation_mode="product-distribution",
                 explicit_custom=true,
             )
             @test load_task(custom_spectrum_path).problem.differential_cross_section isa

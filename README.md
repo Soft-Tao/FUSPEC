@@ -3,7 +3,7 @@
 ![Julia](https://img.shields.io/badge/Julia-1.12-blue)
 ![Python](https://img.shields.io/badge/Python-3-blue)
 ![License](https://img.shields.io/github/license/Soft-Tao/FUSPEC)
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.0.1-blue)
 ![Last commit](https://img.shields.io/github/last-commit/Soft-Tao/FUSPEC?branch=main)
 
 FUSPEC is a standalone, open-source Monte Carlo code for calculating
