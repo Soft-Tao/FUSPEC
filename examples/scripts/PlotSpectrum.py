@@ -13,25 +13,25 @@ OUTPUT = OUTPUT_DIRECTORY / "Spectrums.png"
 SERIES = (
     (
         OUTPUT_DIRECTORY / "Spectrum1.txt",
-        "TaskPackage1 custom",
+        "Beam-thermal",
         "#e31a1c",
         "-",
     ),
     (
         OUTPUT_DIRECTORY / "Spectrum1_ref.txt",
-        "Spectrum1_ref",
+        "Beam-thermal-ref",
         "#9677b8",
         "--",
     ),
     (
         OUTPUT_DIRECTORY / "Spectrum2.txt",
-        "TaskPackage2 custom",
+        "Thermal",
         "#fdbf6f",
         ":",
     ),
     (
         OUTPUT_DIRECTORY / "Spectrum2_ref.txt",
-        "Spectrum2_ref",
+        "Thermal-ref",
         "#33a02c",
         "-.",
     ),
@@ -64,7 +64,7 @@ def main():
     axes.set_yscale("log")
     axes.set_ylim(bottom=1.0e-1)
     axes.set_xlabel("Neutron energy (MeV)")
-    axes.set_ylabel(r"Differential rate (s$^{-1}$ MeV$^{-1}$)")
+    axes.set_ylabel(r"Neutron spectra (s$^{-1}$ MeV$^{-1}$)")
     axes.legend()
     figure.savefig(OUTPUT, bbox_inches="tight", dpi=300)
     plt.close(figure)
