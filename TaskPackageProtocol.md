@@ -336,8 +336,8 @@ The current concrete reaction data use one human-readable TOML file per
 built-in name:
 
 ```text
-FPESC/data/dd-n3he.toml
-FPESC/data/dt-n4he.toml
+FUSPEC/data/dd-n3he.toml
+FUSPEC/data/dt-n4he.toml
 ```
 
 Julia's standard-library `TOML` module parses the current files. Each file has

@@ -9,7 +9,7 @@ properties that are easy to break silently and expensive to notice:
   magnetic field as the polar axis (TaskPackageProtocol section 7), and
 * the Monte Carlo result must not depend on the worker count.
 
-Run them with `julia -t 4 --project=FPESC -e 'using Pkg; Pkg.test()'`; the
+Run them with `julia -t 4 --project=FUSPEC -e 'using Pkg; Pkg.test()'`; the
 worker-count test is skipped when Julia was started with a single thread.
 """
 

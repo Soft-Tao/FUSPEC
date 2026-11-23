@@ -10,7 +10,7 @@ end
 
 function print_usage(io::IO=stdout)
     println(io, "Usage:")
-    println(io, "  julia -t N --project=FPESC scripts/run_fpesc_task.jl \\")
+    println(io, "  julia -t N --project=FUSPEC scripts/run_fpesc_task.jl \\")
     println(io, "    --input TASK.h5 --output OUTPUT.h5 --samples COUNT")
     println(io)
     println(io, "COUNT is the total number of Monte Carlo samples for this run.")

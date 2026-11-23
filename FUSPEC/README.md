@@ -30,13 +30,13 @@ needed. That call materializes a full-size copy, so prefer the streaming
 Install dependencies from the repository root:
 
 ```sh
-julia --project=FPESC -e 'using Pkg; Pkg.instantiate()'
+julia --project=FUSPEC -e 'using Pkg; Pkg.instantiate()'
 ```
 
 Run a prepared task with four threads and 500,000 total samples:
 
 ```sh
-julia -t 4 --project=FPESC scripts/run_fpesc_task.jl \
+julia -t 4 --project=FUSPEC scripts/run_fpesc_task.jl \
   --input inputs.h5 \
   --samples 500000 \
   --output output.h5

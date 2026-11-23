@@ -6,7 +6,7 @@ inputs; the Monte Carlo calculation runs in the standalone `FPESC.jl` package.
 
 ## Layout
 
-- `FPESC/`: Julia physics kernels, HDF5 task loader, and final-result writer.
+- `FUSPEC/`: Julia physics kernels, HDF5 task loader, and final-result writer.
 - `scripts/prepare_fpesc_task.py`: prepare one self-contained input task.
 - `scripts/run_fpesc_task.jl`: run one prepared task with Julia.
 - `data/ENDF_crosssections/`: cross-section sources required by the preparer.
@@ -25,7 +25,7 @@ python -m pip install -r requirements.txt
 Install the Julia dependencies:
 
 ```sh
-julia --project=FPESC -e 'using Pkg; Pkg.instantiate()'
+julia --project=FUSPEC -e 'using Pkg; Pkg.instantiate()'
 ```
 
 ## Prepare an input task
@@ -48,7 +48,7 @@ Carlo sample count or Julia thread count.
 Schema v2 selects the built-in `dd-n3he` or `dt-n4he` reaction with
 `/reaction/name`. These tasks omit explicit particle and cross-section
 definitions; Julia resolves them from the human-readable presets under
-`FPESC/data/`. A task with `/reaction/name = "custom"` retains the explicit
+`FUSPEC/data/`. A task with `/reaction/name = "custom"` retains the explicit
 particle and cross-section layout. The spectrum product is still selected by
 `/reaction/selected_product` for emission-spectrum tasks.
 
@@ -62,7 +62,7 @@ ENDF MF6, and the selected model is recorded in `/provenance/task_config`.
 ## Run the Julia CLI
 
 ```sh
-julia -t 4 --project=FPESC scripts/run_fpesc_task.jl \
+julia -t 4 --project=FUSPEC scripts/run_fpesc_task.jl \
   --input inputs.h5 \
   --samples 500000 \
   --output output.h5
@@ -76,7 +76,7 @@ accumulator/state datasets.
 ## Run the tests
 
 ```sh
-julia -t 4 --project=FPESC -e 'using Pkg; Pkg.test()'
+julia -t 4 --project=FUSPEC -e 'using Pkg; Pkg.test()'
 ```
 
 The suite pins the field-aligned emission convention, the `K_CM` cross-section
