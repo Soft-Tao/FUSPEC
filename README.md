@@ -39,7 +39,7 @@ An efficient mode also provides reaction-rate profiles.
 
 ## Installation
 
-FUSPEC requires Julia 1.12 or later. Install the package dependencies from the
+FUSPEC requires Julia 1.12 or later. Install Julia from [here](https://julialang.org/downloads/). Install the package dependencies from the
 repository root:
 
 ```sh
