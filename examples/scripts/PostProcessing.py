@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Standalone FPESC emission-map to line-of-sight spectrum converter."""
+"""Standalone FUSPEC emission-map to line-of-sight spectrum converter."""
 
 from pathlib import Path
 
@@ -105,7 +105,7 @@ def read_los(path):
 
 
 def load_map(path):
-    """Open a FPESC product-emission-spectrum HDF5 file."""
+    """Open a FUSPEC product-emission-spectrum HDF5 file."""
     file = h5py.File(path, "r")
     try:
         kind = file["run/calculation_kind"].asstr()[()]
@@ -229,7 +229,7 @@ def pitch_weights(mu_grid, pitch):
 
 
 def convolve(emission_map, geometry, los_path):
-    """Convolve one full-space FPESC map with all records in a LOS file."""
+    """Convolve one full-space FUSPEC map with all records in a LOS file."""
     x, y, z, coefficient_c, direction = read_los(los_path)
     n_records = len(x)
     n_cells = emission_map["n_cells"]
@@ -385,9 +385,9 @@ def write_spectrum(
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as output:
-        output.write("# FPESC line-of-sight D-D neutron spectrum\n")
+        output.write("# FUSPEC line-of-sight D-D neutron spectrum\n")
         output.write(f"# Gfile = {Path(gfile).resolve()}\n")
-        output.write(f"# FPESC_H5 = {Path(input_path).resolve()}\n")
+        output.write(f"# FUSPEC_H5 = {Path(input_path).resolve()}\n")
         output.write(f"# LOS_file = {Path(los_path).resolve()}\n")
         output.write(f"# LOS_records = {stats['records']}\n")
         output.write(f"# LOS_cells = {stats['used']}\n")

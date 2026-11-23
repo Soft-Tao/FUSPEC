@@ -1,5 +1,5 @@
 """
-Regression tests for the FPESC physics kernels.
+Regression tests for the FUSPEC physics kernels.
 
 The cases are small enough to run in a few seconds, but they pin the two
 properties that are easy to break silently and expensive to notice:
@@ -15,7 +15,7 @@ worker-count test is skipped when Julia was started with a single thread.
 
 using Test
 using HDF5
-using FPESC
+using FUSPEC
 
 const AMU = 1.66053906660e-27
 const MU_B = [-1.0, -0.5, 0.0, 0.5, 1.0]
@@ -282,7 +282,7 @@ end
 const RATE_GOLDEN = 4.402366809013499e-21
 const RATE_WEIGHT_GOLDEN = 8.18184830154786e30
 
-@testset "FPESC" begin
+@testset "FUSPEC" begin
     @testset "built-in reaction presets and task dispatch" begin
         dd = load_builtin_reaction("dd-n3he")
         dt = load_builtin_reaction("dt-n4he")

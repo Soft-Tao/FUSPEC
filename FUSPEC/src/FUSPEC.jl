@@ -1,4 +1,4 @@
-module FPESC
+module FUSPEC
 
 include("constants.jl")
 include("particles.jl")

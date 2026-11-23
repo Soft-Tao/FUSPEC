@@ -1,4 +1,4 @@
-const COUNTER_RNG_ALGORITHM = :fpesc_counter_v1
+const COUNTER_RNG_ALGORITHM = :fuspec_counter_v1
 
 """
 Inputs for a directional, energy-binned total-spectrum calculation.
@@ -168,7 +168,7 @@ function validate_spectrum_result(result::EmissionSpectrum,
         "unsupported RNG algorithm in spectrum state",
     ))
     result.kernel_version == kernel_version() || throw(ArgumentError(
-        "spectrum state kernel version does not match this FPESC version",
+        "spectrum state kernel version does not match this FUSPEC version",
     ))
     return nothing
 end

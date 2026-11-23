@@ -1,6 +1,6 @@
-# FPESC.jl
+# FUSPEC.jl
 
-FPESC.jl is the standalone Julia physics and Monte Carlo implementation used by
+FUSPEC.jl is the standalone Julia physics and Monte Carlo implementation used by
 the file-driven Fusion Product Energy Spectrum Calculator workflow. It loads a
 self-contained HDF5 task prepared by Python and runs without Python or
 JuliaCall.
@@ -36,7 +36,7 @@ julia --project=FUSPEC -e 'using Pkg; Pkg.instantiate()'
 Run a prepared task with four threads and 500,000 total samples:
 
 ```sh
-julia -t 4 --project=FUSPEC scripts/run_fpesc_task.jl \
+julia -t 4 --project=FUSPEC examples/scripts/RunTask.jl \
   --input inputs.h5 \
   --samples 500000 \
   --output output.h5

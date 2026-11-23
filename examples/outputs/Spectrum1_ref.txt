@@ -1,7 +1,7 @@
-# FPESC line-of-sight D-D neutron spectrum
-# Gfile = /Users/xuxutao/北大物院博士阶段/第五学期/FPESC_dev/examples/inputs/gFile
-# FPESC_H5 = /Users/xuxutao/北大物院博士阶段/第五学期/FPESC_dev/examples/outputs/ResultPackage1.h5
-# LOS_file = /Users/xuxutao/北大物院博士阶段/第五学期/FPESC_dev/examples/inputs/LineOfSight.file
+# FUSPEC line-of-sight D-D neutron spectrum
+# Gfile = /Users/xuxutao/北大物院博士阶段/第五学期/FUSPEC_dev/examples/inputs/gFile
+# FUSPEC_H5 = /Users/xuxutao/北大物院博士阶段/第五学期/FUSPEC_dev/examples/outputs/ResultPackage1.h5
+# LOS_file = /Users/xuxutao/北大物院博士阶段/第五学期/FUSPEC_dev/examples/inputs/LineOfSight.file
 # LOS_records = 107671
 # LOS_cells = 105776
 # LOS_points_outside_map = 1895

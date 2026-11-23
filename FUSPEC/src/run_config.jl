@@ -1,4 +1,4 @@
-"""Validated configuration shared by FPESC Monte Carlo kernels."""
+"""Validated configuration shared by FUSPEC Monte Carlo kernels."""
 struct RunConfig{K<:KinematicsMode}
     samples::UInt64
     sample_offset::UInt64

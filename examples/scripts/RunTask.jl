@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using FPESC
+using FUSPEC
 
 struct CLIOptions
     input::String
@@ -10,7 +10,7 @@ end
 
 function print_usage(io::IO=stdout)
     println(io, "Usage:")
-    println(io, "  julia -t N --project=FUSPEC scripts/run_fpesc_task.jl \\")
+    println(io, "  julia -t N --project=FUSPEC examples/scripts/RunTask.jl \\")
     println(io, "    --input TASK.h5 --output OUTPUT.h5 --samples COUNT")
     println(io)
     println(io, "COUNT is the total number of Monte Carlo samples for this run.")
@@ -74,7 +74,7 @@ function atomic_write_result(output::AbstractString, task, result, config)
 end
 
 function run(options::CLIOptions)
-    println("Loading FPESC task: ", options.input)
+    println("Loading FUSPEC task: ", options.input)
     task = load_task(options.input)
     workers = Threads.nthreads()
     config = RunConfig(
@@ -118,7 +118,7 @@ function main(arguments::Vector{String}=ARGS)
         run(options)
         return 0
     catch error
-        println(stderr, "FPESC task failed: ", sprint(showerror, error))
+        println(stderr, "FUSPEC task failed: ", sprint(showerror, error))
         Base.display_error(Base.catch_stack())
         return 1
     end

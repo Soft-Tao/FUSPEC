@@ -305,16 +305,16 @@ function normalized_calculation_kind(value::AbstractString)
     throw(ArgumentError("unsupported task calculation_kind $value"))
 end
 
-"""Load and validate an FPESC prepared task from an HDF5 input bundle."""
+"""Load and validate an FUSPEC prepared task from an HDF5 input bundle."""
 function load_task(path::AbstractString)
     isfile(path) || throw(ArgumentError("input task does not exist: $path"))
     return h5open(path, "r") do file
         version = Int(read_root_attribute(file, "schema_version"))
         version == 2 || throw(ArgumentError(
-            "unsupported FPESC task schema_version $version; expected 2",
+            "unsupported FUSPEC task schema_version $version; expected 2",
         ))
         String(read_root_attribute(file, "unit_system")) == "SI" ||
-            throw(ArgumentError("FPESC task unit_system must be SI"))
+            throw(ArgumentError("FUSPEC task unit_system must be SI"))
         kind = normalized_calculation_kind(
             read_string(file, "task/calculation_kind"),
         )

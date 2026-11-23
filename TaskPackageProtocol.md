@@ -1,4 +1,4 @@
-# FPESC `input.h5` Task Package Protocol (Contract Draft)
+# FUSPEC `input.h5` Task Package Protocol (Contract Draft)
 
 > Status: v0.3. Schema v2 and the built-in DD/DT runtime path are implemented.
 
@@ -57,7 +57,7 @@ built-in names `dd-n3he` and `dt-n4he` or the explicit custom mode `custom`.
 /run/seed
 ```
 
-`samples`, the worker count, thread IDs, and thread shards are not written into `input.h5`. `samples` is specified by the Julia CLI; parallel thread capacity is set by `julia -t N`. Schema v2 implicitly fixes the `fpesc_counter_v1` RNG, and the collective velocity of both reactants is implicitly `[0,0,0]`, with no dataset stored. The RNG must be decoupled from the runtime choice of sample count and worker count so that deterministic acceptance with 1/2/4 threads is supported.
+`samples`, the worker count, thread IDs, and thread shards are not written into `input.h5`. `samples` is specified by the Julia CLI; parallel thread capacity is set by `julia -t N`. Schema v2 implicitly fixes the `fuspec_counter_v1` RNG, and the collective velocity of both reactants is implicitly `[0,0,0]`, with no dataset stored. The RNG must be decoupled from the runtime choice of sample count and worker count so that deterministic acceptance with 1/2/4 threads is supported.
 
 ## 5. Reaction and Particles
 
@@ -111,7 +111,7 @@ to `/populations/p1`, as required by the `distinct` convention below.
 
 The particle masses, cross sections, product linkage, and cross-section data
 version are not stored in a built-in task package. They are recorded in the
-FPESC built-in preset selected by `/reaction/name`. Julia resolves that preset
+FUSPEC built-in preset selected by `/reaction/name`. Julia resolves that preset
 before constructing the reaction-rate or spectrum problem.
 
 ### 5.2 Custom Reaction Tasks
@@ -375,7 +375,7 @@ corresponding data sections:
   3H(d,n)4He, and 2H(t,n)4He and of the Cross Sections of Their Time-Reversed
   Counterparts up to 30 MeV and Beyond*.
 
-A built-in task is runnable by the current FPESC loader.
+A built-in task is runnable by the current FUSPEC loader.
 
 ## 10. Required Fields for Product-Emission-Spectrum Tasks
 

@@ -1,4 +1,4 @@
-"""A particle species expressed in the SI units used by FPESC."""
+"""A particle species expressed in the SI units used by FUSPEC."""
 struct Particle
     name::Symbol
     mass::Float64

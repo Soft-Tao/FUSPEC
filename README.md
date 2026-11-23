@@ -42,7 +42,7 @@ This installs the Julia dependencies declared in `FUSPEC/Project.toml`,
 including HDF5.jl. Check that the package loads correctly with:
 
 ```sh
-julia --project=FUSPEC -e 'using FPESC'
+julia --project=FUSPEC -e 'using FUSPEC'
 ```
 
 The Python utilities in `examples/scripts/` are optional. Install all of their
