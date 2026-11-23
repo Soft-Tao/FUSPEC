@@ -23,6 +23,10 @@ An efficient mode also provides reaction-rate profiles.
 - `examples/outputs/`: reference spectra and example result packages.
 - `examples/scripts/`: helper scripts for running tasks, post-processing and
   plotting.
+- `examples/How-to-run-FUSPEC.md`: complete example workflow and expected
+  outputs.
+- `examples/scripts/TaskPreparation.py`: build the example task packages from a gFile
+  and the thermal- and fast-ion NPZ distributions.
 - `TaskPackageProtocol.md`: HDF5 task and result package specification.
 - `THIRD_PARTY_NOTICES.md`: attribution for cross-section models and other
   third-party materials.
@@ -45,8 +49,8 @@ including HDF5.jl. Check that the package loads correctly with:
 julia --project=FUSPEC -e 'using FUSPEC'
 ```
 
-The Python utilities in `examples/scripts/` are optional. Install all of their
-dependencies from the requirements file:
+The Python task-preparation and plotting utilities are optional. Install
+their dependencies from the requirements file:
 
 ```sh
 python -m pip install -r examples/requirements.txt

@@ -1,4 +1,6 @@
-# Python dependencies for examples/scripts/
+# Python dependencies for task preparation and examples/scripts/
+freeqdsk
 h5py
 matplotlib
 numpy
+scipy
