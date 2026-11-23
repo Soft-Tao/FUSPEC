@@ -8,8 +8,7 @@ be cited appropriately.
 ## Cross-section models
 
 The built-in `dd-n3he` and `dt-n4he` presets in `FUSPEC/data/` combine two
-source models. No ENDF-formatted cross-section files are bundled with the
-current version.
+source models.
 
 ### Bosch-Hale total cross sections
 
