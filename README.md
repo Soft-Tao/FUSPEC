@@ -45,18 +45,17 @@ including HDF5.jl. Check that the package loads correctly with:
 julia --project=FUSPEC -e 'using FPESC'
 ```
 
-The Python utilities in `examples/scripts/` are optional and require NumPy,
-Matplotlib and h5py:
+The Python utilities in `examples/scripts/` are optional. Install all of their
+dependencies from the requirements file:
 
 ```sh
-python -m pip install numpy matplotlib h5py
+python -m pip install -r examples/requirements.txt
 ```
 
 ## License and cross-section attribution
 
 The original FUSPEC software is released under the
-[MIT License](LICENSE). The built-in cross-section presets are not based on
-ENDF-formatted data. Their total cross sections use the Bosch-Hale analytic
+[MIT License](LICENSE). The built-in cross-section use the Bosch-Hale analytic
 parameterization, while their angle-dependent center-of-mass differential
 cross sections use the DROSG normalized Legendre expansion. The corresponding
 references and attribution are provided in

@@ -1,0 +1,4 @@
+# Python dependencies for examples/scripts/
+h5py
+matplotlib
+numpy
