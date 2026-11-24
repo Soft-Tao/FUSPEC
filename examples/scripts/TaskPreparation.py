@@ -19,12 +19,13 @@ ELEMENTARY_CHARGE = 1.602176634e-19
 MEV = 1.0e6 * ELEMENTARY_CHARGE
 FAST_ENERGY_J = np.linspace(500.0, 149500.0, 150) * ELEMENTARY_CHARGE
 FAST_MU = np.linspace(-0.98, 0.98, 50)
-THETA_COUNT = 300
-DEFAULT_BINS = 128
+RADIAL_COUNT = 100
+THETA_COUNT = 200
+DEFAULT_BINS = 72
 DEFAULT_SPECTRUM_MIN_MEV = 2.0
 DEFAULT_SPECTRUM_MAX_MEV = 3.0
-DEFAULT_BEAM_ANGULAR_BINS = 101
-DEFAULT_THERMAL_ANGULAR_BINS = 51
+DEFAULT_BEAM_ANGULAR_BINS = 26
+DEFAULT_THERMAL_ANGULAR_BINS = 26
 
 
 class FluxGeometry:
@@ -286,8 +287,14 @@ def main() -> None:
     if fast_values.shape != (len(zones), len(FAST_ENERGY_J), len(FAST_MU)):
         raise ValueError("FastIonDistribution distribution must have shape (n_zone, 150, 50)")
 
+    source_rho = (
+        np.arange(len(thermal_density), dtype=np.float64) + 0.5
+    ) / len(thermal_density)
+    rho = (np.arange(RADIAL_COUNT, dtype=np.float64) + 0.5) / RADIAL_COUNT
+    thermal_density = np.interp(rho, source_rho, thermal_density)
+    thermal_temperature = np.interp(rho, source_rho, thermal_temperature)
+
     geometry = FluxGeometry(args.gfile)
-    rho = (np.arange(len(thermal_density), dtype=np.float64) + 0.5) / len(thermal_density)
     theta = (np.arange(THETA_COUNT, dtype=np.float64) + 0.5) * (2.0 * np.pi / THETA_COUNT)
     r, z = geometry.surface_points(rho, theta)
     psi = np.repeat(rho**2, THETA_COUNT)
