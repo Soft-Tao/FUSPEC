@@ -4,7 +4,7 @@ Run these commands from the repository root.
 
 ## Build the task packages
 
-Build the fast-thermal and thermal-thermal D-D tasks from the gFile and NPZ profiles:
+Build the beam-thermal and thermal-thermal D-D tasks from the gFile and NPZ profiles:
 
 ```sh
 python examples/scripts/TaskPreparation.py \
@@ -13,7 +13,7 @@ python examples/scripts/TaskPreparation.py \
   --fast examples/inputs/FastIonDistribution.npz
 ```
 
-## Run the fast-thermal task
+## Run the Beam-thermal task
 
 Calculate the fast-D plus thermal-D product distribution with 1e6 samples:
 
