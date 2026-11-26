@@ -13,7 +13,7 @@ python examples/scripts/TaskPreparation.py \
   --fast examples/inputs/FastIonDistribution.npz
 ```
 
-## Run the Beam-thermal task
+## Run the beam-thermal task
 
 Calculate the fast-D plus thermal-D product distribution with 1e6 samples:
 
